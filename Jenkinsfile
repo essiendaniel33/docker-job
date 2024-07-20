@@ -20,10 +20,10 @@ pipeline {
         stage('Building Docker Image') {
             steps {
                 script {
-             //   withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'jenkins-aws-creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                
-                dir('docker') {
-                 sh "docker build -t oxer-html-image ."
+                    dir('docker') {
+                        sh "chmod 777 /var/run/docker.sock"
+                        sh "docker build -t oxer-html-image ."
+                 
 }
                 
                  }
@@ -33,44 +33,17 @@ pipeline {
         stage('Push To DockerHub Registry') {
             steps {
                 script {
-               // withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'jenkins-aws-creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                withCredentials([usernamePassword(credentialsId: 'jenkins_dockerhub_creds', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
                 sh """
-                docker login --username="$USERNAME" --password="$PASSWORD"
-                docker tag oxer-html-image ityourway/oxer-html-repo:v001
-                docker push ityourway/oxer-html-repo:v001
+                aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 905418280053.dkr.ecr.us-east-1.amazonaws.com"
+                docker tag oxer-html-image 905418280053.dkr.ecr.us-east-1.amazonaws.com/marketvector-app-repo:v001
+                docker push 905418280053.dkr.ecr.us-east-1.amazonaws.com/marketvector-app-repo:v001
                 """
 }
                 
                 
 }
-                }
-            }
-        stage('Deploy On Remote Server') {
-            steps {
-                 script {
-                  sshPublisher(
-                   continueOnError: false, failOnError: true,
-                   publishers: [
-                    sshPublisherDesc(
-                     configName: "test_server",
-                     verbose: true,
-                     transfers: [
-                      sshTransfer(
-                       sourceFiles: "",
-                       removePrefix: "",
-                       remoteDirectory: "",
-                       execCommand: """
-                          docker stop oxer-app || true
-                          docker rm oxer-app || true
-                          docker rmi -f ityourway/oxer-html-repo:v001 || true
-                          docker run -itd --name oxer-app -p 80:80 ityourway/oxer-html-repo:v001
-                          """
-                      )
-                     ])
-                   ])
-                 }
-                }
-            }
-        }
-    }
+           }
+      }
+}
+        
+    
